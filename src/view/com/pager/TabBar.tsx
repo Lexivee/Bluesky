@@ -1,8 +1,9 @@
-import React, {useRef, useMemo, useEffect, useState, useCallback} from 'react'
-import {StyleSheet, View, ScrollView, LayoutChangeEvent} from 'react-native'
-import {Text} from '../util/text/Text'
+import React, {useMemo, useCallback, useEffect, useState} from 'react'
+import Animated, {useAnimatedReaction, useAnimatedRef, useAnimatedStyle, useDerivedValue, useSharedValue, measure, interpolate, interpolateColor, scrollTo, withSpring} from 'react-native-reanimated'
+import {Dimensions, StyleSheet, View, ScrollView} from 'react-native'
 import {PressableWithHover} from '../util/PressableWithHover'
 import {usePalette} from 'lib/hooks/usePalette'
+import {useTheme} from 'lib/ThemeContext'
 import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
 import {isWeb} from 'platform/detection'
 import {DraggableScrollView} from './DraggableScrollView'
@@ -18,6 +19,8 @@ export interface TabBarProps {
 
 export function TabBar({
   testID,
+  dragProgress,
+  dragState,
   selectedPage,
   items,
   indicatorColor,
@@ -25,43 +28,71 @@ export function TabBar({
   onPressSelected,
 }: TabBarProps) {
   const pal = usePalette('default')
-  const scrollElRef = useRef<ScrollView>(null)
-  const [itemXs, setItemXs] = useState<number[]>([])
-  const indicatorStyle = useMemo(
-    () => ({borderBottomColor: indicatorColor || pal.colors.link}),
-    [indicatorColor, pal],
-  )
+  const contentSize = useSharedValue(0)
+  const containerSize = useSharedValue(0)
+  const scrollElRef = useAnimatedRef(null)
   const {isDesktop, isTablet} = useWebMediaQueries()
+  const [layouts, setLayouts] = useState([])
+  const scrollX = useSharedValue(0)
+  const didScroll = useSharedValue(false)
 
-  // scrolls to the selected item when the page changes
-  useEffect(() => {
-    scrollElRef.current?.scrollTo({
-      x: itemXs[selectedPage] || 0,
-    })
-  }, [scrollElRef, itemXs, selectedPage])
+  const didLayout = (
+    layouts.length === items.length &&
+    layouts.every(l => l !== undefined)
+  );
 
-  const onPressItem = useCallback(
-    (index: number) => {
-      onSelect?.(index)
-      if (index === selectedPage) {
-        onPressSelected?.()
-      }
-    },
-    [onSelect, selectedPage, onPressSelected],
-  )
+  const indicatorStyle = useAnimatedStyle(() => {
+    if (!didLayout) {
+      return {}
+    }
+    return {
+      width: interpolate(dragProgress.value, layouts.map((l, i) => i), layouts.map(l => l.width)),
+      left: interpolate(dragProgress.value, layouts.map((l, i) => i), layouts.map(l => l.x)),
+    }
+  })
 
-  // calculates the x position of each item on mount and on layout change
-  const onItemLayout = React.useCallback(
-    (e: LayoutChangeEvent, index: number) => {
-      const x = e.nativeEvent.layout.x
-      setItemXs(prev => {
-        const Xs = [...prev]
-        Xs[index] = x
-        return Xs
+  const onPressItem = (index: number) => {
+    if (!didScroll.value) {
+      scrollElRef.current.scrollTo({
+        x: scrollX.value + ((index - selectedPage) / (items.length - 1)) * (contentSize.value - containerSize.value),
+        animated: true
       })
-    },
-    [],
-  )
+    }
+    didScroll.value = false
+    onSelect?.(index)
+    if (index === selectedPage) {
+      onPressSelected?.()
+    }
+  };
+
+  useAnimatedReaction(() => {
+    return (dragProgress.value / (items.length - 1)) * (contentSize.value - containerSize.value)
+  }, (nextX, prevX) => {
+    if (prevX !== nextX && dragState.value !== 'idle' && !didScroll.value) {
+      scrollTo(scrollElRef, nextX, 0, false);
+    }
+  })
+
+  useAnimatedReaction(() => {
+    return dragState.value
+  }, (nextDragState, prevDragState) => {
+    if (nextDragState === 'idle' && nextDragState !== prevDragState) {
+      const nextX = (dragProgress.value / (items.length - 1)) * (contentSize.value - containerSize.value)
+      scrollTo(scrollElRef, nextX, 0, true);
+      didScroll.value = false
+    }
+  })
+
+  const onItemLayout = (e: LayoutChangeEvent, index: number) => {
+    const l = e.nativeEvent.layout
+    setLayouts(ls => items.map((item, i) => {
+      if (i === index) {
+        return l
+      } else {
+        return ls[i]
+      }
+    }))
+  }
 
   const styles = isDesktop || isTablet ? desktopStyles : mobileStyles
 
@@ -71,27 +102,65 @@ export function TabBar({
         horizontal={true}
         showsHorizontalScrollIndicator={false}
         ref={scrollElRef}
-        contentContainerStyle={styles.contentContainer}>
+        contentContainerStyle={styles.contentContainer}
+        onContentSizeChange={e => {
+          contentSize.value = e
+        }}
+        onScrollBeginDrag={e => {
+          didScroll.value = true
+        }}
+        onLayout={e => {
+          containerSize.value = e.nativeEvent.layout.width
+        }}
+        onScroll={e => {
+          scrollX.value = Math.round(e.nativeEvent.contentOffset.x)
+        }}
+        scrollEventThrottle={16}>
         {items.map((item, i) => {
-          const selected = i === selectedPage
+          const isSelected = i === selectedPage
           return (
             <PressableWithHover
               key={item}
               onLayout={e => onItemLayout(e, i)}
-              style={[styles.item, selected && indicatorStyle]}
+              style={[styles.item, {
+                borderBottomColor: (!didLayout && isSelected) ? indicatorColor : 'transparent',
+                borderBottomWidth: 3
+              }]}
               hoverStyle={pal.viewLight}
               onPress={() => onPressItem(i)}>
-              <Text
+              <MaybeHighlightedText
                 type={isDesktop || isTablet ? 'xl-bold' : 'lg-bold'}
                 testID={testID ? `${testID}-${item}` : undefined}
-                style={selected ? pal.text : pal.textLight}>
+                approxIndex={dragProgress}
+                index={i}>
                 {item}
-              </Text>
+              </MaybeHighlightedText>
             </PressableWithHover>
           )
         })}
+        {didLayout && <Animated.View
+          style={[{
+            position: 'absolute',
+            bottom: 0,
+            height: 3,
+            backgroundColor: indicatorColor,
+          }, indicatorStyle]}
+      />}
       </DraggableScrollView>
+
     </View>
+  )
+}
+
+export function MaybeHighlightedText({ approxIndex, index, type, ...rest }) {
+  const pal = usePalette('default')
+  const theme = useTheme()
+  const typography = theme.typography[type]
+  const animatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(Math.min(Math.abs(approxIndex.value - index), 1), [0, 1], [pal.text.color, pal.textLight.color])
+  }))
+  return (
+    <Animated.Text {...rest} style={[typography, animatedStyle]} />
   )
 }
 
