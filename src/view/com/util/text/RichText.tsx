@@ -17,6 +17,7 @@ export function RichText({
   lineHeight = 1.2,
   style,
   numberOfLines,
+  lang,
   selectable,
   noLinks,
 }: {
@@ -26,6 +27,7 @@ export function RichText({
   lineHeight?: number
   style?: StyleProp<TextStyle>
   numberOfLines?: number
+  lang?: string
   selectable?: boolean
   noLinks?: boolean
 }) {
@@ -50,6 +52,7 @@ export function RichText({
           testID={testID}
           style={[style, pal.text]}
           dataSet={WORD_WRAP}
+          lang={lang}
           selectable={selectable}>
           {text}
         </Text>
@@ -63,6 +66,7 @@ export function RichText({
         numberOfLines={numberOfLines}
         // @ts-ignore web only -prf
         dataSet={WORD_WRAP}
+        lang={lang}
         selectable={selectable}>
         {text}
       </Text>
@@ -125,6 +129,7 @@ export function RichText({
       numberOfLines={numberOfLines}
       // @ts-ignore web only -prf
       dataSet={WORD_WRAP}
+      lang={lang}
       selectable={selectable}>
       {els}
     </Text>

@@ -29,6 +29,12 @@ import {useComposerControls} from '#/state/shell/composer'
 import {Shadow, usePostShadow, POST_TOMBSTONE} from '#/state/cache/post-shadow'
 import {Trans, msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {
+  isPostInLanguage,
+  getPostLanguage,
+  sanitizeAppLanguageSetting,
+} from '../../../locale/helpers'
+import {useLanguagePrefs} from '#/state/preferences'
 
 export function Post({
   post,
@@ -98,6 +104,8 @@ function PostInner({
 }) {
   const pal = usePalette('default')
   const {_} = useLingui()
+  const langPrefs = useLanguagePrefs()
+  const sanitizedLanguage = sanitizeAppLanguageSetting(langPrefs.appLanguage)
   const {openComposer} = useComposerControls()
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
@@ -130,6 +138,14 @@ function PostInner({
   const onPressShowMore = React.useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
+
+  const postLang = useMemo(
+    () =>
+      sanitizedLanguage && !isPostInLanguage(post, [sanitizedLanguage])
+        ? getPostLanguage(post)
+        : undefined,
+    [post, sanitizedLanguage],
+  )
 
   return (
     <Link href={itemHref} style={[styles.outer, pal.view, pal.border, style]}>
@@ -189,6 +205,7 @@ function PostInner({
                   lineHeight={1.3}
                   numberOfLines={limitLines ? MAX_POST_LINES : undefined}
                   style={s.flex1}
+                  lang={postLang}
                 />
               </View>
             ) : undefined}

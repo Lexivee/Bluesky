@@ -20,7 +20,12 @@ import {sanitizeDisplayName} from 'lib/strings/display-names'
 import {sanitizeHandle} from 'lib/strings/handles'
 import {countLines, pluralize} from 'lib/strings/helpers'
 import {isEmbedByEmbedder} from 'lib/embeds'
-import {getTranslatorLink, isPostInLanguage} from '../../../locale/helpers'
+import {
+  getTranslatorLink,
+  isPostInLanguage,
+  getPostLanguage,
+  sanitizeAppLanguageSetting,
+} from '../../../locale/helpers'
 import {PostMeta} from '../util/PostMeta'
 import {PostEmbeds} from '../util/post-embeds'
 import {PostCtrls} from '../util/post-ctrls/PostCtrls'
@@ -159,6 +164,7 @@ let PostThreadItemLoaded = ({
   const pal = usePalette('default')
   const {_} = useLingui()
   const langPrefs = useLanguagePrefs()
+  const sanitizedLanguage = sanitizeAppLanguageSetting(langPrefs.appLanguage)
   const {openComposer} = useComposerControls()
   const [limitLines, setLimitLines] = React.useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
@@ -197,6 +203,13 @@ let PostThreadItemLoaded = ({
           !isPostInLanguage(post, [langPrefs.primaryLanguage]),
       ),
     [post, langPrefs.primaryLanguage],
+  )
+  const postLang = useMemo(
+    () =>
+      sanitizedLanguage && !isPostInLanguage(post, [sanitizedLanguage])
+        ? getPostLanguage(post)
+        : undefined,
+    [post, sanitizedLanguage],
   )
 
   const onPressReply = React.useCallback(() => {
@@ -333,6 +346,7 @@ let PostThreadItemLoaded = ({
                     richText={richText}
                     lineHeight={1.3}
                     style={s.flex1}
+                    lang={postLang}
                     selectable
                   />
                 </View>
@@ -531,6 +545,7 @@ let PostThreadItemLoaded = ({
                       style={[pal.text, s.flex1]}
                       lineHeight={1.3}
                       numberOfLines={limitLines ? MAX_POST_LINES : undefined}
+                      lang={postLang}
                     />
                   </View>
                 ) : undefined}

@@ -10,6 +10,7 @@ export type CustomTextProps = TextProps & {
   lineHeight?: number
   title?: string
   dataSet?: Record<string, string | number>
+  lang?: string
   selectable?: boolean
 }
 
@@ -20,6 +21,7 @@ export function Text({
   style,
   title,
   dataSet,
+  lang,
   selectable,
   ...props
 }: React.PropsWithChildren<CustomTextProps>) {
@@ -42,6 +44,7 @@ export function Text({
       style={[s.black, typography, lineHeightStyle, style]}
       // @ts-ignore web only -esb
       dataSet={Object.assign({tooltip: title}, dataSet || {})}
+      lang={lang}
       selectable={selectable}
       {...props}>
       {children}
