@@ -4,7 +4,7 @@ import {QueryClient} from '@tanstack/react-query'
 
 import {logger} from '#/logger'
 import {RQKEY as RQKEY_NOTIFS} from '#/state/queries/notifications/feed'
-import {invalidateCachedUnreadPage} from '#/state/queries/notifications/unread'
+import {invalidateCachedUnreadPage, useUnreadNotificationsApi} from '#/state/queries/notifications/unread'
 import {truncateAndInvalidate} from '#/state/queries/util'
 import {getAgent, SessionAccount} from '#/state/session'
 import {track} from 'lib/analytics/analytics'
@@ -84,6 +84,7 @@ export function registerTokenChangeHandler(
 }
 
 export function useNotificationsListener(queryClient: QueryClient) {
+  const unreads = useUnreadNotificationsApi()
   useEffect(() => {
     // handle notifications that are received, both in the foreground or background
     // NOTE: currently just here for debug logging
@@ -136,6 +137,7 @@ export function useNotificationsListener(queryClient: QueryClient) {
           invalidateCachedUnreadPage()
           truncateAndInvalidate(queryClient, RQKEY_NOTIFS())
           resetToTab('NotificationsTab') // open notifications tab
+          unreads.markAllRead();
         }
       },
     )
