@@ -1,37 +1,40 @@
 import React from 'react'
 import {View} from 'react-native'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
 import {useFocusEffect, useIsFocused} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
-import {
-  NativeStackScreenProps,
-  NotificationsTabNavigatorParams,
-} from 'lib/routes/types'
-import {ViewHeader} from '../com/util/ViewHeader'
-import {Feed} from '../com/notifications/Feed'
-import {TextLink} from 'view/com/util/Link'
-import {ListMethods} from 'view/com/util/List'
-import {LoadLatestBtn} from 'view/com/util/load-latest/LoadLatestBtn'
-import {MainScrollProvider} from '../com/util/MainScrollProvider'
-import {usePalette} from 'lib/hooks/usePalette'
-import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
-import {s, colors} from 'lib/styles'
-import {useAnalytics} from 'lib/analytics/analytics'
+
+import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {logger} from '#/logger'
-import {useSetMinimalShellMode} from '#/state/shell'
-import {Trans, msg} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {isNative} from '#/platform/detection'
+import {listenSoftReset} from '#/state/events'
+import {RQKEY as NOTIFS_RQKEY} from '#/state/queries/notifications/feed'
 import {
   useUnreadNotifications,
   useUnreadNotificationsApi,
 } from '#/state/queries/notifications/unread'
-import {RQKEY as NOTIFS_RQKEY} from '#/state/queries/notifications/feed'
-import {listenSoftReset, emitSoftReset} from '#/state/events'
 import {truncateAndInvalidate} from '#/state/queries/util'
-import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {isNative} from '#/platform/detection'
-import {FAB} from '../com/util/fab/FAB'
-import {ComposeIcon2} from 'lib/icons'
+import {useSetMinimalShellMode} from '#/state/shell'
 import {useComposerControls} from '#/state/shell/composer'
+import {useAnalytics} from 'lib/analytics/analytics'
+import {usePalette} from 'lib/hooks/usePalette'
+import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
+import {ComposeIcon2} from 'lib/icons'
+import {
+  NativeStackScreenProps,
+  NotificationsTabNavigatorParams,
+} from 'lib/routes/types'
+import {s} from 'lib/styles'
+import {ListMethods} from 'view/com/util/List'
+import {LoadLatestBtn} from 'view/com/util/load-latest/LoadLatestBtn'
+import {Text} from 'view/com/util/text/Text'
+import {Feed} from '../com/notifications/Feed'
+import {PagerRef} from '../com/pager/Pager'
+import {PagerWithHeader} from '../com/pager/PagerWithHeader'
+import {FAB} from '../com/util/fab/FAB'
+import {MainScrollProvider} from '../com/util/MainScrollProvider'
+import {SimpleViewHeader} from '../com/util/SimpleViewHeader'
 
 type Props = NativeStackScreenProps<
   NotificationsTabNavigatorParams,
@@ -41,16 +44,44 @@ export function NotificationsScreen({}: Props) {
   const {_} = useLingui()
   const setMinimalShellMode = useSetMinimalShellMode()
   const [isScrolledDown, setIsScrolledDown] = React.useState(false)
+  const [filterType, setFilterType] = React.useState('All')
   const scrollElRef = React.useRef<ListMethods>(null)
   const {screen} = useAnalytics()
   const pal = usePalette('default')
-  const {isDesktop} = useWebMediaQueries()
   const queryClient = useQueryClient()
   const unreadNotifs = useUnreadNotifications()
   const unreadApi = useUnreadNotificationsApi()
   const hasNew = !!unreadNotifs
   const isScreenFocused = useIsFocused()
   const {openComposer} = useComposerControls()
+  const pagerRef = React.useRef<PagerRef>(null)
+  const {isMobile} = useWebMediaQueries()
+
+  const handleTabChange = React.useCallback(
+    (index: number) => {
+      const types = ['All', 'Mentions']
+      if (filterType !== types[index]) {
+        setFilterType(types[index])
+      }
+    },
+    [filterType],
+  )
+
+  const renderHeader = () => {
+    return (
+      <SimpleViewHeader
+        showBackButton={isMobile}
+        style={[pal.border, {borderBottomWidth: 1}]}>
+        <View style={{flex: 1}}>
+          <Text type="title-lg" style={[pal.text, {fontWeight: 'bold'}]}>
+            <Trans>Notifications</Trans>
+          </Text>
+        </View>
+      </SimpleViewHeader>
+    )
+  }
+
+  const sectionTitles = [_('All'), _('Mentions')]
 
   // event handlers
   // =
@@ -101,58 +132,34 @@ export function NotificationsScreen({}: Props) {
     return listenSoftReset(onPressLoadLatest)
   }, [onPressLoadLatest, isScreenFocused])
 
-  const ListHeaderComponent = React.useCallback(() => {
-    if (isDesktop) {
-      return (
-        <View
-          style={[
-            pal.view,
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 18,
-              paddingVertical: 12,
-            },
-          ]}>
-          <TextLink
-            type="title-lg"
-            href="/notifications"
-            style={[pal.text, {fontWeight: 'bold'}]}
-            text={
-              <>
-                <Trans>Notifications</Trans>{' '}
-                {hasNew && (
-                  <View
-                    style={{
-                      top: -8,
-                      backgroundColor: colors.blue3,
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                    }}
-                  />
-                )}
-              </>
-            }
-            onPress={emitSoftReset}
-          />
-        </View>
-      )
-    }
-    return <></>
-  }, [isDesktop, pal, hasNew])
-
   return (
     <View testID="notificationsScreen" style={s.hContentRegion}>
-      <ViewHeader title={_(msg`Notifications`)} canGoBack={false} />
-      <MainScrollProvider>
-        <Feed
-          onScrolledDownChange={setIsScrolledDown}
-          scrollElRef={scrollElRef}
-          ListHeaderComponent={ListHeaderComponent}
-        />
-      </MainScrollProvider>
+      <PagerWithHeader
+        onPageSelected={handleTabChange}
+        ref={pagerRef}
+        initialPage={0}
+        renderHeader={renderHeader}
+        items={sectionTitles}
+        isHeaderReady={true}>
+        {({scrollElRef}) => (
+          <MainScrollProvider>
+            <Feed
+              filterType="All"
+              onScrolledDownChange={setIsScrolledDown}
+              scrollElRef={scrollElRef}
+            />
+          </MainScrollProvider>
+        )}
+        {({scrollElRef}) => (
+          <MainScrollProvider>
+            <Feed
+              filterType="Mentions"
+              onScrolledDownChange={setIsScrolledDown}
+              scrollElRef={scrollElRef}
+            />
+          </MainScrollProvider>
+        )}
+      </PagerWithHeader>
       {(isScrolledDown || hasNew) && (
         <LoadLatestBtn
           onPress={onPressLoadLatest}

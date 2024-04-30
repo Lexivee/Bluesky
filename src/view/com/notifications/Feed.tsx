@@ -1,36 +1,44 @@
 import React from 'react'
-import {CenteredView} from '../util/Views'
-import {ActivityIndicator, StyleSheet, View} from 'react-native'
-import {FeedItem} from './FeedItem'
-import {NotificationFeedLoadingPlaceholder} from '../util/LoadingPlaceholder'
-import {ErrorMessage} from '../util/error/ErrorMessage'
-import {LoadMoreRetryBtn} from '../util/LoadMoreRetryBtn'
-import {EmptyState} from '../util/EmptyState'
-import {s} from 'lib/styles'
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
+import {msg} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
+
+import {usePalette} from '#/lib/hooks/usePalette'
+import {cleanError} from '#/lib/strings/errors'
+import {logger} from '#/logger'
 import {useNotificationFeedQuery} from '#/state/queries/notifications/feed'
 import {useUnreadNotificationsApi} from '#/state/queries/notifications/unread'
-import {logger} from '#/logger'
-import {cleanError} from '#/lib/strings/errors'
 import {useModerationOpts} from '#/state/queries/preferences'
-import {List, ListRef} from '../util/List'
-import {useLingui} from '@lingui/react'
-import {msg} from '@lingui/macro'
-import {usePalette} from '#/lib/hooks/usePalette'
+import {s} from 'lib/styles'
+import {EmptyState} from '../util/EmptyState'
+import {ErrorMessage} from '../util/error/ErrorMessage'
+import {List} from '../util/List'
+import {NotificationFeedLoadingPlaceholder} from '../util/LoadingPlaceholder'
+import {LoadMoreRetryBtn} from '../util/LoadMoreRetryBtn'
+import {CenteredView} from '../util/Views'
+import {FeedItem} from './FeedItem'
 
 const EMPTY_FEED_ITEM = {_reactKey: '__empty__'}
 const LOAD_MORE_ERROR_ITEM = {_reactKey: '__load_more_error__'}
 const LOADING_ITEM = {_reactKey: '__loading__'}
 
 export function Feed({
-  scrollElRef,
   onPressTryAgain,
   onScrolledDownChange,
   ListHeaderComponent,
+  filterType,
 }: {
-  scrollElRef?: ListRef
+  scrollElRef?: React.RefObject<FlatList<any> | ScrollView | null>
   onPressTryAgain?: () => void
   onScrolledDownChange: (isScrolledDown: boolean) => void
   ListHeaderComponent?: () => JSX.Element
+  filterType: string
 }) {
   const [isPTRing, setIsPTRing] = React.useState(false)
   const pal = usePalette('default')
@@ -52,22 +60,30 @@ export function Feed({
 
   const items = React.useMemo(() => {
     let arr: any[] = []
-    if (isFetched) {
-      if (isEmpty) {
-        arr = arr.concat([EMPTY_FEED_ITEM])
-      } else if (data) {
-        for (const page of data?.pages) {
-          arr = arr.concat(page.items)
+    if (isFetched && !isEmpty) {
+      data?.pages.forEach(page => {
+        let filteredItems = page.items
+        if (filterType === 'Mentions') {
+          let mentions = page.items.filter(
+            item =>
+              item.type === 'reply' ||
+              item.type === 'quote' ||
+              item.type === 'mention',
+          )
+          filteredItems = mentions
         }
-      }
-      if (isError && !isEmpty) {
-        arr = arr.concat([LOAD_MORE_ERROR_ITEM])
-      }
+
+        arr = arr.concat(filteredItems)
+      })
+    } else if (isEmpty) {
+      arr.push(EMPTY_FEED_ITEM)
+    } else if (isError) {
+      arr.push(LOAD_MORE_ERROR_ITEM)
     } else {
       arr.push(LOADING_ITEM)
     }
     return arr
-  }, [isFetched, isError, isEmpty, data])
+  }, [isFetched, isError, isEmpty, data, filterType])
 
   const onRefresh = React.useCallback(async () => {
     try {
@@ -155,7 +171,6 @@ export function Feed({
       )}
       <List
         testID="notifsFeed"
-        ref={scrollElRef}
         data={items}
         keyExtractor={item => item._reactKey}
         renderItem={renderItem}
