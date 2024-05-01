@@ -78,13 +78,13 @@ function InnerApp() {
             // Resets the entire tree below when it changes:
             key={currentAccount?.did}>
             <QueryProvider currentDid={currentAccount?.did}>
-              <PushNotificationsListener>
-                <StatsigProvider>
-                  <ModerationOptsProvider>
-                    <LabelDefsProvider>
-                      <LoggedOutViewProvider>
-                        <SelectedFeedProvider>
-                          <UnreadNotifsProvider>
+              <UnreadNotifsProvider>
+                <PushNotificationsListener>
+                  <StatsigProvider>
+                    <ModerationOptsProvider>
+                      <LabelDefsProvider>
+                        <LoggedOutViewProvider>
+                          <SelectedFeedProvider>
                             <ThemeProvider theme={theme}>
                               {/* All components should be within this provider */}
                               <RootSiblingParent>
@@ -94,13 +94,13 @@ function InnerApp() {
                                 </GestureHandlerRootView>
                               </RootSiblingParent>
                             </ThemeProvider>
-                          </UnreadNotifsProvider>
-                        </SelectedFeedProvider>
-                      </LoggedOutViewProvider>
-                    </LabelDefsProvider>
-                  </ModerationOptsProvider>
-                </StatsigProvider>
-              </PushNotificationsListener>
+                          </SelectedFeedProvider>
+                        </LoggedOutViewProvider>
+                      </LabelDefsProvider>
+                    </ModerationOptsProvider>
+                  </StatsigProvider>
+                </PushNotificationsListener>
+              </UnreadNotifsProvider>
             </QueryProvider>
           </React.Fragment>
         </Splash>
