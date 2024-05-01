@@ -4,6 +4,7 @@ import 'view/icons'
 
 import React, {useEffect, useState} from 'react'
 import {GestureHandlerRootView} from 'react-native-gesture-handler'
+import {KeyboardProvider} from 'react-native-keyboard-controller'
 import {RootSiblingParent} from 'react-native-root-siblings'
 import {
   initialWindowMetrics,
@@ -16,8 +17,9 @@ import {useQueryClient} from '@tanstack/react-query'
 
 import {Provider as StatsigProvider} from '#/lib/statsig/statsig'
 import {init as initPersistedState} from '#/state/persisted'
-import * as persisted from '#/state/persisted'
 import {Provider as LabelDefsProvider} from '#/state/preferences/label-defs'
+import {Provider as ModerationOptsProvider} from '#/state/preferences/moderation-opts'
+import {readLastActiveAccount} from '#/state/session/util'
 import {useIntentHandler} from 'lib/hooks/useIntentHandler'
 import {useNotificationsListener} from 'lib/notifications/notifications'
 import {QueryProvider} from 'lib/react-query'
@@ -64,7 +66,7 @@ function InnerApp() {
       Toast.show(_(msg`Sorry! Your session expired. Please log in again.`))
     })
 
-    const account = persisted.get('session').currentAccount
+    const account = readLastActiveAccount()
     resumeSession(account)
   }, [resumeSession, _])
 
@@ -79,21 +81,23 @@ function InnerApp() {
               <UnreadNotifsProvider>
                 <PushNotificationsListener>
                   <StatsigProvider>
-                    <LabelDefsProvider>
-                      <LoggedOutViewProvider>
-                        <SelectedFeedProvider>
-                          <ThemeProvider theme={theme}>
-                            {/* All components should be within this provider */}
-                            <RootSiblingParent>
-                              <GestureHandlerRootView style={s.h100pct}>
-                                <TestCtrls />
-                                <Shell />
-                              </GestureHandlerRootView>
-                            </RootSiblingParent>
-                          </ThemeProvider>
-                        </SelectedFeedProvider>
-                      </LoggedOutViewProvider>
-                    </LabelDefsProvider>
+                    <ModerationOptsProvider>
+                      <LabelDefsProvider>
+                        <LoggedOutViewProvider>
+                          <SelectedFeedProvider>
+                            <ThemeProvider theme={theme}>
+                              {/* All components should be within this provider */}
+                              <RootSiblingParent>
+                                <GestureHandlerRootView style={s.h100pct}>
+                                  <TestCtrls />
+                                  <Shell />
+                                </GestureHandlerRootView>
+                              </RootSiblingParent>
+                            </ThemeProvider>
+                          </SelectedFeedProvider>
+                        </LoggedOutViewProvider>
+                      </LabelDefsProvider>
+                    </ModerationOptsProvider>
                   </StatsigProvider>
                 </PushNotificationsListener>
               </UnreadNotifsProvider>
@@ -137,7 +141,9 @@ function App() {
                   <LightboxStateProvider>
                     <I18nProvider>
                       <PortalProvider>
-                        <InnerApp />
+                        <KeyboardProvider>
+                          <InnerApp />
+                        </KeyboardProvider>
                       </PortalProvider>
                     </I18nProvider>
                   </LightboxStateProvider>
