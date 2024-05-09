@@ -7,7 +7,8 @@ import {
   AtUri,
 } from '@atproto/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
-import {Trans} from '@lingui/macro'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
 
 import {useColorSchemeStyle} from '#/lib/hooks/useColorSchemeStyle'
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -171,13 +172,24 @@ function Rule({
 }
 
 function Separator({i, length}: {i: number; length: number}) {
+  const {_} = useLingui()
+  const textStyles = useColorSchemeStyle(
+    {color: colors.gray7},
+    {color: colors.blue1},
+  )
   if (length < 2 || i === length - 1) {
     return null
   }
   if (i === length - 2) {
     return (
       <>
-        {length > 2 ? ',' : ''} <Trans>and</Trans>{' '}
+        {length > 2 ? _(msg`,`) : ''}
+        <Trans>
+          <Text type="sm" style={[{flexWrap: 'wrap'}, textStyles]}>
+            {' '}
+            and{' '}
+          </Text>
+        </Trans>
       </>
     )
   }

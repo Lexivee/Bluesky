@@ -4,6 +4,7 @@ import {setStringAsync} from 'expo-clipboard'
 
 import {isAndroid, isIOS} from 'platform/detection'
 import * as Toast from '#/view/com/util/Toast'
+import {t} from '@lingui/macro'
 
 /**
  * This function shares a URL using the native Share API if available, or copies it to the clipboard
@@ -20,6 +21,6 @@ export async function shareUrl(url: string) {
     // React Native Share is not supported by web. Web Share API
     // has increasing but not full support, so default to clipboard
     setStringAsync(url)
-    Toast.show('Copied to clipboard')
+    Toast.show(t`Copied to clipboard`)
   }
 }
