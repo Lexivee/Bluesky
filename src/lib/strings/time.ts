@@ -1,19 +1,21 @@
-export function niceDate(date: number | string | Date) {
+import {t} from '@lingui/macro'
+
+export function niceDate(date: number | string | Date, appLang: string) {
   const d = new Date(date)
-  return `${d.toLocaleDateString('en-us', {
+  return `${d.toLocaleTimeString(appLang || undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })} · ${d.toLocaleDateString(appLang || undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  })} at ${d.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
   })}`
 }
 
 export function getAge(birthDate: Date): number {
-  var today = new Date()
-  var age = today.getFullYear() - birthDate.getFullYear()
-  var m = today.getMonth() - birthDate.getMonth()
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
   if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
     age--
   }

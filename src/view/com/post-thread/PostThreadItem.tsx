@@ -664,6 +664,7 @@ function ExpandedPostDetails({
   const pal = usePalette('default')
   const {_} = useLingui()
   const openLink = useOpenLink()
+  const langPrefs = useLanguagePrefs()
 
   const onTranslatePress = React.useCallback(() => {
     openLink(translatorUrl)
@@ -671,7 +672,9 @@ function ExpandedPostDetails({
 
   return (
     <View style={[s.flexRow, s.mt2, s.mb10]}>
-      <Text style={pal.textLight}>{niceDate(post.indexedAt)}</Text>
+      <Text style={pal.textLight}>
+        {niceDate(post.indexedAt, langPrefs.appLanguage)}
+      </Text>
       {needsTranslation && (
         <>
           <Text style={pal.textLight}> &middot; </Text>
