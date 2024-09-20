@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import {ActivityIndicator, Dimensions, StyleSheet} from 'react-native'
+import {Dimensions, StyleSheet} from 'react-native'
 import {Gesture, GestureDetector} from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
@@ -42,18 +42,19 @@ type Props = {
   onRequestClose: () => void
   onTap: () => void
   onZoom: (isZoomed: boolean) => void
+  onLoad: () => void
   isScrollViewBeingDragged: boolean
   showControls: boolean
 }
 const ImageItem = ({
   imageSrc,
+  onLoad,
   onTap,
   onZoom,
   onRequestClose,
   isScrollViewBeingDragged,
 }: Props) => {
   const [isScaled, setIsScaled] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
   const imageDimensions = useImageDimensions(imageSrc)
   const committedTransform = useSharedValue(initialTransform)
   const panTranslation = useSharedValue({x: 0, y: 0})
@@ -313,12 +314,8 @@ const ImageItem = ({
         singleTap,
       )
 
-  const isLoading = !isLoaded || !imageDimensions
   return (
     <Animated.View ref={containerRef} style={styles.container}>
-      {isLoading && (
-        <ActivityIndicator size="small" color="#FFF" style={styles.loading} />
-      )}
       <GestureDetector gesture={composedGesture}>
         <AnimatedImage
           contentFit="contain"
@@ -326,7 +323,7 @@ const ImageItem = ({
           style={[styles.image, animatedStyle]}
           accessibilityLabel={imageSrc.alt}
           accessibilityHint=""
-          onLoad={() => setIsLoaded(true)}
+          onLoad={onLoad}
           cachePolicy="memory"
         />
       </GestureDetector>
@@ -342,13 +339,6 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
-  },
-  loading: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
   },
 })
 

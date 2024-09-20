@@ -7,9 +7,8 @@
  */
 
 import React, {useState} from 'react'
-
 import {Dimensions, StyleSheet} from 'react-native'
-import {Image} from 'expo-image'
+import {Gesture, GestureDetector} from 'react-native-gesture-handler'
 import Animated, {
   interpolate,
   runOnJS,
@@ -17,13 +16,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated'
+import {Image} from 'expo-image'
+
 import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
-import {Gesture, GestureDetector} from 'react-native-gesture-handler'
-
+import {Dimensions as ImageDimensions, ImageSource} from '../../@types'
 import useImageDimensions from '../../hooks/useImageDimensions'
-
-import {ImageSource, Dimensions as ImageDimensions} from '../../@types'
-import {ImageLoading} from './ImageLoading'
 
 const SWIPE_CLOSE_OFFSET = 75
 const SWIPE_CLOSE_VELOCITY = 1
@@ -36,6 +33,7 @@ type Props = {
   onRequestClose: () => void
   onTap: () => void
   onZoom: (scaled: boolean) => void
+  onLoad: () => void
   isScrollViewBeingDragged: boolean
   showControls: boolean
 }
@@ -47,11 +45,11 @@ const ImageItem = ({
   onTap,
   onZoom,
   onRequestClose,
+  onLoad,
   showControls,
 }: Props) => {
   const scrollViewRef = useAnimatedRef<Animated.ScrollView>()
   const translationY = useSharedValue(0)
-  const [loaded, setLoaded] = useState(false)
   const [scaled, setScaled] = useState(false)
   const imageDimensions = useImageDimensions(imageSrc)
   const maxZoomScale = imageDimensions
@@ -143,14 +141,13 @@ const ImageItem = ({
         maximumZoomScale={maxZoomScale}
         contentContainerStyle={styles.imageScrollContainer}
         onScroll={scrollHandler}>
-        {(!loaded || !imageDimensions) && <ImageLoading />}
         <AnimatedImage
           contentFit="contain"
           source={{uri: imageSrc.uri}}
           style={[styles.image, animatedStyle]}
           accessibilityLabel={imageSrc.alt}
           accessibilityHint=""
-          onLoad={() => setLoaded(true)}
+          onLoad={onLoad}
           enableLiveTextInteraction={showControls && !scaled}
         />
       </Animated.ScrollView>
