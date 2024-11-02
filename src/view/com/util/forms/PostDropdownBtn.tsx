@@ -41,6 +41,7 @@ import {
 } from '#/state/queries/post'
 import {useToggleQuoteDetachmentMutation} from '#/state/queries/postgate'
 import {getMaybeDetachedQuoteEmbed} from '#/state/queries/postgate/util'
+import {useProfileBlockMutationQueue} from '#/state/queries/profile'
 import {useToggleReplyVisibilityMutation} from '#/state/queries/threadgate'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
@@ -67,6 +68,7 @@ import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlash} from '#/components/icons/E
 import {Filter_Stroke2_Corner0_Rounded as Filter} from '#/components/icons/Filter'
 import {Mute_Stroke2_Corner0_Rounded as Mute} from '#/components/icons/Mute'
 import {PaperPlane_Stroke2_Corner0_Rounded as Send} from '#/components/icons/PaperPlane'
+import {PersonX_Stroke2_Corner0_Rounded as PersonX} from '#/components/icons/Person'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {SettingsGear2_Stroke2_Corner0_Rounded as Gear} from '#/components/icons/SettingsGear2'
 import {SpeakerVolumeFull_Stroke2_Corner0_Rounded as Unmute} from '#/components/icons/Speaker'
@@ -118,6 +120,7 @@ let PostDropdownBtn = ({
   const openLink = useOpenLink()
   const navigation = useNavigation<NavigationProp>()
   const {mutedWordsDialogControl} = useGlobalDialogsControlContext()
+  const blockPromptControl = useDialogControl()
   const reportDialogControl = useReportDialogControl()
   const deletePromptControl = useDialogControl()
   const hidePromptControl = useDialogControl()
@@ -158,6 +161,8 @@ let PostDropdownBtn = ({
 
   const {mutateAsync: toggleQuoteDetachment, isPending: isDetachPending} =
     useToggleQuoteDetachmentMutation()
+
+  const [queueBlock] = useProfileBlockMutationQueue(postAuthor)
 
   const prefetchPostInteractionSettings = usePrefetchPostInteractionSettings({
     postUri: post.uri,
@@ -358,6 +363,18 @@ let PostDropdownBtn = ({
       action: isPinned ? 'unpin' : 'pin',
     })
   }, [isPinned, pinPostMutate, postCid, postUri])
+
+  const onBlockAuthor = useCallback(async () => {
+    try {
+      await queueBlock()
+      Toast.show(_(msg`Account blocked`))
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        logger.error('Failed to block account', {message: e})
+        Toast.show(_(msg`There was an issue! ${e.toString()}`), 'xmark')
+      }
+    }
+  }, [_, queueBlock])
 
   return (
     <EventStopper onKeyDown={false}>
@@ -616,13 +633,24 @@ let PostDropdownBtn = ({
               <Menu.Divider />
               <Menu.Group>
                 {!isAuthor && (
-                  <Menu.Item
-                    testID="postDropdownReportBtn"
-                    label={_(msg`Report post`)}
-                    onPress={() => reportDialogControl.open()}>
-                    <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
-                    <Menu.ItemIcon icon={Warning} position="right" />
-                  </Menu.Item>
+                  <>
+                    {!postAuthor.viewer?.blocking && (
+                      <Menu.Item
+                        testID="postDropdownBlockBtn"
+                        label={_(msg`Block account`)}
+                        onPress={() => blockPromptControl.open()}>
+                        <Menu.ItemText>{_(msg`Block account`)}</Menu.ItemText>
+                        <Menu.ItemIcon icon={PersonX} position="right" />
+                      </Menu.Item>
+                    )}
+                    <Menu.Item
+                      testID="postDropdownReportBtn"
+                      label={_(msg`Report post`)}
+                      onPress={() => reportDialogControl.open()}>
+                      <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
+                      <Menu.ItemIcon icon={Warning} position="right" />
+                    </Menu.Item>
+                  </>
                 )}
 
                 {isAuthor && (
@@ -744,6 +772,17 @@ let PostDropdownBtn = ({
         )}
         onConfirm={onToggleReplyVisibility}
         confirmButtonCta={_(msg`Yes, hide`)}
+      />
+
+      <Prompt.Basic
+        control={blockPromptControl}
+        title={_(msg`Block Account?`)}
+        description={_(
+          msg`Blocked accounts cannot reply in your threads, mention you, or otherwise interact with you.`,
+        )}
+        onConfirm={onBlockAuthor}
+        confirmButtonCta={_(msg`Block`)}
+        confirmButtonColor="negative"
       />
     </EventStopper>
   )
