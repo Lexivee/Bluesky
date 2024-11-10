@@ -3550,7 +3550,7 @@ msgstr "Feljegyzések"
 
 #: src/view/com/composer/labels/LabelsBtn.tsx:74
 msgid "Labels added"
-msgstr "Alkalmaztad a feljegyzéseket"
+msgstr "Feljegyzés alkalmazva"
 
 #: src/screens/Profile/Sections/Labels.tsx:163
 msgid ""
