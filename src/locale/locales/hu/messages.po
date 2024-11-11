@@ -4705,7 +4705,7 @@ msgstr "{numItems}/{0}. lehetőség"
 #: src/components/dms/ReportDialog.tsx:178
 #: src/components/ReportDialog/SubmitView.tsx:167
 msgid "Optionally provide additional information below:"
-msgstr "Lehetőséged van megadni az alábbi információt is (Nem kötelező):"
+msgstr "További információ (nem kötelező):"
 
 #: src/components/dialogs/MutedWords.tsx:299
 msgid "Options:"
@@ -5892,7 +5892,7 @@ msgstr "A(z) {emojiName} emoji kiválasztása profilképként"
 
 #: src/components/ReportDialog/SubmitView.tsx:140
 msgid "Select the moderation service(s) to report to"
-msgstr "A jelentéseket fogadó moderálási szolgáltatás(ok) megadása"
+msgstr "Címzett moderálási szolgáltatás(ok)"
 
 #: src/view/com/auth/server-input/index.tsx:79
 msgid "Select the service that hosts your data."
