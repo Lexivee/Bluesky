@@ -141,7 +141,6 @@ module.exports = function (config) {
         adaptiveIcon: {
           foregroundImage: './assets/icon-android-foreground.png',
           monochromeImage: './assets/icon-android-foreground.png',
-          backgroundImage: './assets/icon-android-background.png',
           backgroundColor: '#1185FE',
         },
         googleServicesFile: './google-services.json',
@@ -209,7 +208,6 @@ module.exports = function (config) {
               compileSdkVersion: 34,
               targetSdkVersion: 34,
               buildToolsVersion: '34.0.0',
-              kotlinVersion: '1.8.0',
               newArchEnabled: false,
             },
           },
