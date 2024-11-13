@@ -1288,11 +1288,11 @@ function useScrollTracker({
     }) => {
       'worklet'
       if (typeof newContentHeight === 'number')
-        contentHeight.value = Math.floor(newContentHeight)
+        contentHeight.set(Math.floor(newContentHeight))
       if (typeof newContentOffset === 'number')
-        contentOffset.value = Math.floor(newContentOffset)
+        contentOffset.set(Math.floor(newContentOffset))
       if (typeof newScrollViewHeight === 'number')
-        scrollViewHeight.value = Math.floor(newScrollViewHeight)
+        scrollViewHeight.set(Math.floor(newScrollViewHeight))
     },
     [contentHeight, contentOffset, scrollViewHeight],
   )
