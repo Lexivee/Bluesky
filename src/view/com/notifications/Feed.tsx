@@ -15,7 +15,10 @@ import {cleanError} from '#/lib/strings/errors'
 import {s} from '#/lib/styles'
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {useNotificationFeedQuery} from '#/state/queries/notifications/feed'
+import {
+  NotificationType,
+  useNotificationFeedQuery,
+} from '#/state/queries/notifications/feed'
 import {useUnreadNotificationsApi} from '#/state/queries/notifications/unread'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import {ErrorMessage} from '#/view/com/util/error/ErrorMessage'
@@ -23,11 +26,17 @@ import {List, ListRef} from '#/view/com/util/List'
 import {NotificationFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {LoadMoreRetryBtn} from '#/view/com/util/LoadMoreRetryBtn'
 import {CenteredView} from '#/view/com/util/Views'
+import {TabBar} from '../pager/TabBar'
 import {FeedItem} from './FeedItem'
 
 const EMPTY_FEED_ITEM = {_reactKey: '__empty__'}
 const LOAD_MORE_ERROR_ITEM = {_reactKey: '__load_more_error__'}
 const LOADING_ITEM = {_reactKey: '__loading__'}
+
+const tabs: {
+  label: string
+  types?: NotificationType[]
+}[] = [{label: 'All'}, {label: 'Mentions', types: ['reply', 'quote']}]
 
 export function Feed({
   scrollElRef,
@@ -51,6 +60,9 @@ export function Feed({
   const {_} = useLingui()
   const moderationOpts = useModerationOpts()
   const {checkUnread} = useUnreadNotificationsApi()
+  const [tab, setTab] = React.useState<(typeof tabs)[number]>(tabs[0])
+  const deferredTab = React.useDeferredValue(tab)
+
   const {
     data,
     isFetching,
@@ -65,8 +77,11 @@ export function Feed({
     overridePriorityNotifications,
   })
   const isEmpty = !isFetching && !data?.pages[0]?.items.length
+  const isTransitioning = tab !== deferredTab
 
   const items = React.useMemo(() => {
+    if (isTransitioning) return [LOADING_ITEM]
+
     let arr: any[] = []
     if (isFetched) {
       if (isEmpty) {
@@ -83,7 +98,7 @@ export function Feed({
       arr.push(LOADING_ITEM)
     }
     return arr
-  }, [isFetched, isError, isEmpty, data])
+  }, [isFetched, isError, isEmpty, isTransitioning, data])
 
   const onRefresh = React.useCallback(async () => {
     try {
@@ -111,6 +126,13 @@ export function Feed({
   const onPressRetryLoadMore = React.useCallback(() => {
     fetchNextPage()
   }, [fetchNextPage])
+
+  const onSelectTab = React.useCallback(
+    (index: number) => setTab(tabs[index]),
+    [setTab],
+  )
+
+  const tabLabels = React.useMemo(() => tabs.map(({label}) => label), [])
 
   const renderItem = React.useCallback(
     ({item, index}: ListRenderItemInfo<any>) => {
@@ -141,16 +163,26 @@ export function Feed({
             <NotificationFeedLoadingPlaceholder />
           </View>
         )
+      } else if (!deferredTab.types || deferredTab.types.includes(item.type)) {
+        return (
+          <FeedItem
+            item={item}
+            moderationOpts={moderationOpts!}
+            hideTopBorder={index === 0 && isTabletOrMobile}
+          />
+        )
       }
-      return (
-        <FeedItem
-          item={item}
-          moderationOpts={moderationOpts!}
-          hideTopBorder={index === 0 && isTabletOrMobile}
-        />
-      )
+
+      return null
     },
-    [moderationOpts, isTabletOrMobile, _, onPressRetryLoadMore, pal.border],
+    [
+      moderationOpts,
+      isTabletOrMobile,
+      _,
+      deferredTab.types,
+      onPressRetryLoadMore,
+      pal.border,
+    ],
   )
 
   const FeedFooter = React.useCallback(
@@ -175,6 +207,11 @@ export function Feed({
           />
         </CenteredView>
       )}
+      <TabBar
+        items={tabLabels}
+        onSelect={onSelectTab}
+        selectedPage={tabs.indexOf(tab)}
+      />
       <List
         testID="notifsFeed"
         ref={scrollElRef}
