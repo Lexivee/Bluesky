@@ -1265,12 +1265,12 @@ function useScrollTracker({
   const contentHeight = useSharedValue(0)
 
   const hasScrolledToTop = useDerivedValue(() =>
-    withTiming(contentOffset.value === 0 ? 1 : 0),
+    withTiming(contentOffset.get() === 0 ? 1 : 0),
   )
 
   const hasScrolledToBottom = useDerivedValue(() =>
     withTiming(
-      contentHeight.value - contentOffset.value - 5 <= scrollViewHeight.value
+      contentHeight.get() - contentOffset.get() - 5 <= scrollViewHeight.get()
         ? 1
         : 0,
     ),
@@ -1288,11 +1288,11 @@ function useScrollTracker({
     }) => {
       'worklet'
       if (typeof newContentHeight === 'number')
-        contentHeight.value = Math.floor(newContentHeight)
+        contentHeight.set(Math.floor(newContentHeight))
       if (typeof newContentOffset === 'number')
-        contentOffset.value = Math.floor(newContentOffset)
+        contentOffset.set(Math.floor(newContentOffset))
       if (typeof newScrollViewHeight === 'number')
-        scrollViewHeight.value = Math.floor(newScrollViewHeight)
+        scrollViewHeight.set(Math.floor(newScrollViewHeight))
     },
     [contentHeight, contentOffset, scrollViewHeight],
   )
@@ -1308,21 +1308,22 @@ function useScrollTracker({
     },
   })
 
-  const onScrollViewContentSizeChange = useCallback(
-    (_width: number, height: number) => {
-      if (stickyBottom && height > contentHeight.value) {
+  const onScrollViewContentSizeChangeUIThread = useCallback(
+    (newContentHeight: number) => {
+      'worklet'
+      const oldContentHeight = contentHeight.get()
+      let shouldScrollToBottom = false
+      if (stickyBottom && newContentHeight > oldContentHeight) {
         const isFairlyCloseToBottom =
-          contentHeight.value - contentOffset.value - 100 <=
-          scrollViewHeight.value
+          oldContentHeight - contentOffset.get() - 100 <= scrollViewHeight.get()
         if (isFairlyCloseToBottom) {
-          runOnUI(() => {
-            scrollTo(scrollViewRef, 0, contentHeight.value, true)
-          })()
+          shouldScrollToBottom = true
         }
       }
-      showHideBottomBorder({
-        newContentHeight: height,
-      })
+      showHideBottomBorder({newContentHeight})
+      if (shouldScrollToBottom) {
+        scrollTo(scrollViewRef, 0, newContentHeight, true)
+      }
     },
     [
       showHideBottomBorder,
@@ -1332,6 +1333,13 @@ function useScrollTracker({
       contentOffset,
       scrollViewHeight,
     ],
+  )
+
+  const onScrollViewContentSizeChange = useCallback(
+    (_width: number, height: number) => {
+      runOnUI(onScrollViewContentSizeChangeUIThread)(height)
+    },
+    [onScrollViewContentSizeChangeUIThread],
   )
 
   const onScrollViewLayout = useCallback(
@@ -1347,7 +1355,7 @@ function useScrollTracker({
     return {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderColor: interpolateColor(
-        hasScrolledToTop.value,
+        hasScrolledToTop.get(),
         [0, 1],
         [t.atoms.border_contrast_medium.borderColor, 'transparent'],
       ),
@@ -1357,7 +1365,7 @@ function useScrollTracker({
     return {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: interpolateColor(
-        hasScrolledToBottom.value,
+        hasScrolledToBottom.get(),
         [0, 1],
         [t.atoms.border_contrast_medium.borderColor, 'transparent'],
       ),
@@ -1602,7 +1610,7 @@ function VideoUploadToolbar({state}: {state: VideoState}) {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{rotateZ: `${rotate.value}deg`}],
+      transform: [{rotateZ: `${rotate.get()}deg`}],
     }
   })
 
