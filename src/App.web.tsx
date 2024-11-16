@@ -103,7 +103,7 @@ function InnerApp() {
 
   return (
     <KeyboardProvider enabled={false}>
-      <Alf theme={theme}>
+      <Alf themeName={theme}>
         <ThemeProvider theme={theme}>
           <RootSiblingParent>
             <VideoVolumeProvider>

@@ -7,6 +7,7 @@ import Animated, {
   runOnUI,
   useAnimatedRef,
 } from 'react-native-reanimated'
+import {LinearGradient} from 'expo-linear-gradient'
 import {AppBskyActorDefs, ModerationDecision} from '@atproto/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg} from '@lingui/macro'
@@ -34,6 +35,7 @@ interface Props {
   moderation: ModerationDecision
   hideBackButton?: boolean
   isPlaceholderProfile?: boolean
+  backgroundColor: string
 }
 
 let ProfileHeaderShell = ({
@@ -42,6 +44,7 @@ let ProfileHeaderShell = ({
   moderation,
   hideBackButton = false,
   isPlaceholderProfile,
+  backgroundColor,
 }: React.PropsWithChildren<Props>): React.ReactNode => {
   const t = useTheme()
   const {currentAccount} = useSession()
@@ -100,7 +103,18 @@ let ProfileHeaderShell = ({
   )
 
   return (
-    <View style={t.atoms.bg} pointerEvents={isIOS ? 'auto' : 'box-none'}>
+    <View pointerEvents={isIOS ? 'auto' : 'box-none'}>
+      <LinearGradient
+        key={t.name}
+        colors={[t.palette.primary_200, t.palette.primary_200, backgroundColor]}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
       <View
         pointerEvents={isIOS ? 'auto' : 'box-none'}
         style={[a.relative, {height: 150}]}>
@@ -166,7 +180,7 @@ let ProfileHeaderShell = ({
           <View
             style={[
               t.atoms.bg,
-              {borderColor: t.atoms.bg.backgroundColor},
+              {borderColor: t.palette.primary_400},
               styles.avi,
               profile.associated?.labeler && styles.aviLabeler,
             ]}>

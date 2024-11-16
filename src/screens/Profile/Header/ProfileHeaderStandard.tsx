@@ -46,6 +46,7 @@ interface Props {
   moderationOpts: ModerationOpts
   hideBackButton?: boolean
   isPlaceholderProfile?: boolean
+  backgroundColor: string
 }
 
 let ProfileHeaderStandard = ({
@@ -54,6 +55,7 @@ let ProfileHeaderStandard = ({
   moderationOpts,
   hideBackButton = false,
   isPlaceholderProfile,
+  backgroundColor,
 }: Props): React.ReactNode => {
   const profile: Shadow<AppBskyActorDefs.ProfileViewDetailed> =
     useProfileShadow(profileUnshadowed)
@@ -153,7 +155,8 @@ let ProfileHeaderStandard = ({
       profile={profile}
       moderation={moderation}
       hideBackButton={hideBackButton}
-      isPlaceholderProfile={isPlaceholderProfile}>
+      isPlaceholderProfile={isPlaceholderProfile}
+      backgroundColor={backgroundColor}>
       <View
         style={[a.px_lg, a.pt_md, a.pb_sm, a.overflow_hidden]}
         pointerEvents={isIOS ? 'auto' : 'box-none'}>
@@ -176,8 +179,7 @@ let ProfileHeaderStandard = ({
                 color="secondary"
                 variant="solid"
                 onPress={onPressEditProfile}
-                label={_(msg`Edit profile`)}
-                style={[a.rounded_full]}>
+                label={_(msg`Edit profile`)}>
                 <ButtonText>
                   <Trans>Edit Profile</Trans>
                 </ButtonText>
