@@ -1,8 +1,10 @@
 import React from 'react'
 import {
+  ActivityIndicator,
   findNodeHandle,
   ListRenderItemInfo,
   StyleProp,
+  StyleSheet,
   View,
   ViewStyle,
 } from 'react-native'
@@ -56,6 +58,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
       isFetched,
       hasNextPage,
       fetchNextPage,
+      isFetchingNextPage,
       isError,
       error,
       refetch,
@@ -176,6 +179,19 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
       }
     }, [enabled, scrollElRef, setScrollViewTag])
 
+    const ProfileListsFooter = React.useCallback(() => {
+      const offset = Math.max(headerOffset, 32) * (isWeb ? 1 : 2)
+
+      return isFetchingNextPage ? (
+        <View style={[styles.listsFooter]}>
+          <ActivityIndicator />
+          <View style={{height: offset}} />
+        </View>
+      ) : (
+        <View style={{height: offset}} />
+      )
+    }, [headerOffset, isFetchingNextPage])
+
     return (
       <View testID={testID} style={style}>
         <List
@@ -184,6 +200,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
           data={items}
           keyExtractor={(item: any) => item._reactKey || item.uri}
           renderItem={renderItemInner}
+          ListFooterComponent={ProfileListsFooter}
           refreshing={isPTRing}
           onRefresh={onRefresh}
           headerOffset={headerOffset}
@@ -201,3 +218,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
     )
   },
 )
+
+const styles = StyleSheet.create({
+  listsFooter: {paddingTop: 20},
+})
